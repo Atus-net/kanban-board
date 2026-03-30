@@ -23,6 +23,14 @@ public class BoardController {
             return ResponseEntity.badRequest().body("Lỗi tạo Board: " + e.getMessage());
         }
     }
+    @GetMapping("/{boardId}")
+    public ResponseEntity<?> getBoardDetails(@PathVariable String boardId) {
+        try {
+            return ResponseEntity.ok(boardService.getBoardDetails(boardId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching data: " + e.getMessage());
+        }
+    }
 
     @Data
     static class BoardRequest {

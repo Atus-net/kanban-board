@@ -4,6 +4,11 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import jakarta.persistence.Column;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +30,12 @@ public class Board {
     // ĐIỂM ĂN TIỀN CỦA MONGODB: Nhúng (Embed) luôn danh sách Cột vào trong Board
     private List<ListConfig> lists = new ArrayList<>();
     
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp // Tự động điền khi insert
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp // Tự động cập nhật khi có bất kỳ thay đổi nào
+    private LocalDateTime updatedAt;
 
     // Class cấu hình cho 1 Cột (Ví dụ: Cột To-do, In Progress...)
     @Data
@@ -34,4 +44,5 @@ public class Board {
         private String title;
         private Integer order; // Dùng để sắp xếp vị trí cột khi kéo thả
     }
+    
 }

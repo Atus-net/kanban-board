@@ -5,6 +5,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 @Data
 @Entity
 @Table(name = "workspaces")
@@ -23,6 +25,10 @@ public class Workspace {
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;
 
+    @CreationTimestamp // Tự động điền khi insert
     @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp // Tự động cập nhật khi có bất kỳ thay đổi nào
+    private LocalDateTime updatedAt;
 }
