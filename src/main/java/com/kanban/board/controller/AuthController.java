@@ -22,9 +22,33 @@ public class AuthController {
                     request.getPassword(), 
                     request.getFullName()
             );
-            return ResponseEntity.ok("Đăng ký thành công User: " + savedUser.getEmail());
+            return ResponseEntity.ok("User registration successful: " + savedUser.getEmail());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            String token = userService.login(request.getEmail(), request.getPassword());
+            return ResponseEntity.ok(new AuthResponse(token)); // Trả về dạng JSON có chứa token
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Tạo các class phụ (DTO) để map dữ liệu JSON
+    @Data
+    static class LoginRequest {
+        private String email;
+        private String password;
+    }
+
+    @Data
+    static class AuthResponse {
+        private String token;
+        public AuthResponse(String token) {
+            this.token = token;
         }
     }
 
