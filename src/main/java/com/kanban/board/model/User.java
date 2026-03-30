@@ -20,7 +20,10 @@ public class User {
     private String passwordHash;
 
     @Column(nullable = false)
-    private String fullName;
+    private String firstName; 
+
+    @Column(nullable = false)
+    private String lastName;  
 
     private String avatarUrl;
 

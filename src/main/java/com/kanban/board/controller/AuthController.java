@@ -1,5 +1,6 @@
 package com.kanban.board.controller;
 
+
 import com.kanban.board.model.User;
 import com.kanban.board.service.UserService;
 import lombok.Data;
@@ -20,7 +21,8 @@ public class AuthController {
             User savedUser = userService.registerUser(
                     request.getEmail(), 
                     request.getPassword(), 
-                    request.getFullName()
+                    request.getFirstName(), 
+                    request.getLastName()
             );
             return ResponseEntity.ok("User registration successful: " + savedUser.getEmail());
         } catch (Exception e) {
@@ -39,6 +41,13 @@ public class AuthController {
 
     // Tạo các class phụ (DTO) để map dữ liệu JSON
     @Data
+    static class RegisterRequest {
+        private String email;
+        private String password;
+        private String firstName;
+        private String lastName;
+    }
+    @Data
     static class LoginRequest {
         private String email;
         private String password;
@@ -50,13 +59,5 @@ public class AuthController {
         public AuthResponse(String token) {
             this.token = token;
         }
-    }
-
-    // Class phụ để hứng dữ liệu JSON từ client gửi lên
-    @Data
-    static class RegisterRequest {
-        private String email;
-        private String password;
-        private String fullName;
     }
 }

@@ -15,7 +15,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public User registerUser(String email, String password, String fullName) {
+    public User registerUser(String email, String password, String firstName, String lastName) {
         // Kiểm tra xem email đã tồn tại chưa
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email đã được sử dụng!");
@@ -23,7 +23,8 @@ public class UserService {
 
         User newUser = new User();
         newUser.setEmail(email);
-        newUser.setFullName(fullName);
+        newUser.setFirstName(firstName); // Cập nhật Tên
+        newUser.setLastName(lastName);   // Cập nhật Họ
         newUser.setPasswordHash(passwordEncoder.encode(password));
 
         return userRepository.save(newUser);

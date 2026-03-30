@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import java.security.Principal; // Import Principal
 
 @RestController
 @RequestMapping("/api/workspaces")
@@ -17,14 +17,16 @@ public class WorkspaceController {
     private final WorkspaceService workspaceService;
 
     @PostMapping
-    public ResponseEntity<?> createWorkspace(@RequestBody WorkspaceRequest request) {
+    // Thêm tham số Principal (Đại diện cho User đang đăng nhập hợp lệ)
+    public ResponseEntity<?> createWorkspace(@RequestBody WorkspaceRequest request, Principal principal) {
         try {
-            // Tạm thời chúng ta truyền ownerId từ request body lên. 
-            // (Sau khi tích hợp Filter chặn JWT, chúng ta sẽ lấy ID tự động từ Token)
+            // principal.getName() sẽ trả về email mà chúng ta đã giải mã từ JWT Token
+            String ownerEmail = principal.getName(); 
+
             Workspace workspace = workspaceService.createWorkspace(
                     request.getName(), 
                     request.getDescription(), 
-                    request.getOwnerId()
+                    ownerEmail
             );
             return ResponseEntity.ok(workspace);
         } catch (Exception e) {
@@ -32,10 +34,10 @@ public class WorkspaceController {
         }
     }
 
+    // Body gửi lên giờ chỉ cần Name và Description, KHÔNG CẦN ownerId nữa
     @Data
     static class WorkspaceRequest {
         private String name;
         private String description;
-        private UUID ownerId;
     }
 }
