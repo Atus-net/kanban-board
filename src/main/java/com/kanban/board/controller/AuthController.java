@@ -1,10 +1,10 @@
 package com.kanban.board.controller;
 
-
 import com.kanban.board.model.User;
 import com.kanban.board.service.UserService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,27 +19,31 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
             User savedUser = userService.registerUser(
-                    request.getEmail(), 
-                    request.getPassword(), 
-                    request.getFirstName(), 
+                    request.getEmail(),
+                    request.getPassword(),
+                    request.getFirstName(),
                     request.getLastName()
             );
-            return ResponseEntity.ok("User registration successful: " + savedUser.getEmail());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body("User registration successful: " + savedUser.getEmail());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
         }
     }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             String token = userService.login(request.getEmail(), request.getPassword());
-            return ResponseEntity.ok(new AuthResponse(token)); // Trả về dạng JSON có chứa token
+            return ResponseEntity.ok(new AuthResponse(token));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(e.getMessage());
         }
     }
 
-    // Tạo các class phụ (DTO) để map dữ liệu JSON
+    // DTO classes
     @Data
     static class RegisterRequest {
         private String email;
@@ -47,6 +51,7 @@ public class AuthController {
         private String firstName;
         private String lastName;
     }
+
     @Data
     static class LoginRequest {
         private String email;
