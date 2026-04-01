@@ -1,0 +1,66 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      # PostgreSQL service cho integration test
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: kanban
+          POSTGRES_PASSWORD: kanban123
+          POSTGRES_DB: kanban_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # MongoDB service cho integration test
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping:1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven   # Automation cache dependencies Maven
+    
+    - name: Build with Maven
+      run: ./mvnw clean verify   # chạy test + build
+      env:
+        # Pass DB information to the test profile
+        SPRING_PROFILES_ACTIVE: test
+        SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/kanban_db
+        SPRING_DATASOURCE_USERNAME: kanban
+        SPRING_DATASOURCE_PASSWORD: kanban123
+        SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/kanban_db
+        JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}   # If you have secret GitHub, use it
+
+    # (Optional) Upload artifact JAR after build
+    - name: Upload JAR artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kanban-board-jar
+        path: target/*.jar
