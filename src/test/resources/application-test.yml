@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:14:///kanban_db
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  data:
+    mongodb:
+      uri: mongodb://${MONGODB_CONTAINER_HOST:localhost}:${MONGODB_CONTAINER_PORT:27017}/kanban_test
+
+jwt:
+  secret: test-secret-key-for-unit-test-only-1234567890
+  expiration: 3600000
