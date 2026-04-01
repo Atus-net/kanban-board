@@ -1,9 +1,12 @@
 package com.kanban.board.service;
-
 import com.kanban.board.model.User;
 import com.kanban.board.repository.UserRepository;
+import com.kanban.board.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -13,33 +16,29 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtils jwtUtils;
 
     public User registerUser(String email, String password, String firstName, String lastName) {
-        // Kiểm tra xem email đã tồn tại chưa
         if (userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email đã được sử dụng!");
+            throw new RuntimeException("Email already exists");
         }
 
-        User newUser = new User();
-        newUser.setEmail(email);
-        newUser.setFirstName(firstName); // Cập nhật Tên
-        newUser.setLastName(lastName);   // Cập nhật Họ
-        newUser.setPasswordHash(passwordEncoder.encode(password));
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));  // MÃ HÓA MẬT KHẨU
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setRole("ROLE_USER");
 
-        return userRepository.save(newUser);
+        return userRepository.save(user);
     }
+
     public String login(String email, String password) {
-        // 1. Tìm user trong Database theo email
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại!"));
-
-        // 2. So sánh mật khẩu người dùng nhập với mật khẩu đã băm trong DB
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Sai mật khẩu!");
-        }
-
-        // 3. Nếu đúng hết thì sinh ra JWT Token trả về
-        return jwtService.generateToken(user);
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password)
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return jwtUtils.generateToken(authentication);
     }
 }
