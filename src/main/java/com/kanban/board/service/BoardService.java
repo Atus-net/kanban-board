@@ -1,100 +1,179 @@
 package com.kanban.board.service;
 
 import com.kanban.board.model.Board;
-import com.kanban.board.model.Card;
 import com.kanban.board.repository.BoardRepository;
-import com.kanban.board.repository.CardRepository; // Import thêm CardRepository
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class BoardService {
 
     private final BoardRepository boardRepository;
-    private final CardRepository cardRepository; // Nhúng CardRepository vào đây
 
-    @Transactional
-    public Board createBoard(String workspaceId, String title) {
+    public Board createBoard(String workspaceId, String title, String coverImage) {
         Board board = new Board();
         board.setWorkspaceId(workspaceId);
         board.setTitle(title);
+        board.setCoverImage(coverImage);
+
+        // 1. Khởi tạo 3 cột mặc định bằng cấu trúc Map mới
+        Board.ListConfig todo = new Board.ListConfig();
+        todo.setTitle("To Do");
         
-        Board.ListConfig todoList = new Board.ListConfig();
-        todoList.setTitle("To Do");
-        todoList.setOrder(1000);
+        Board.ListConfig inProgress = new Board.ListConfig();
+        inProgress.setTitle("In Progress");
+        
+        Board.ListConfig done = new Board.ListConfig();
+        done.setTitle("Done");
 
-        Board.ListConfig doingList = new Board.ListConfig();
-        doingList.setTitle("In Progress");
-        doingList.setOrder(2000);
+        // 2. Đẩy vào Map 'lists'
+        board.getLists().put(todo.getId(), todo);
+        board.getLists().put(inProgress.getId(), inProgress);
+        board.getLists().put(done.getId(), done);
 
-        Board.ListConfig doneList = new Board.ListConfig();
-        doneList.setTitle("Done");
-        doneList.setOrder(3000);
-
-        board.getLists().add(todoList);
-        board.getLists().add(doingList);
-        board.getLists().add(doneList);
+        // 3. Thiết lập thứ tự xuất hiện của các cột
+        board.getListOrder().add(todo.getId());
+        board.getListOrder().add(inProgress.getId());
+        board.getListOrder().add(done.getId());
 
         return boardRepository.save(board);
     }
 
-    // --- HÀM MỚI: GOM TOÀN BỘ DỮ LIỆU ---
-    public BoardDetailsResponse getBoardDetails(String boardId) {
-        // 1. Tìm Board
-        Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Bảng!"));
-
-        // 2. Tìm tất cả các thẻ (Card) thuộc về Board này
-        List<Card> allCards = cardRepository.findByBoardId(boardId);
-
-        // 3. Nhào nặn dữ liệu: Nhét Card vào đúng Cột của nó
-        List<BoardDetailsResponse.ListWithCards> listsWithCards = board.getLists().stream().map(listConfig -> {
-            BoardDetailsResponse.ListWithCards listDto = new BoardDetailsResponse.ListWithCards();
-            listDto.setId(listConfig.getId());
-            listDto.setTitle(listConfig.getTitle());
-            listDto.setOrder(listConfig.getOrder());
-            
-            // Lọc ra thẻ thuộc Cột này và sắp xếp theo order
-            List<Card> cardsInList = allCards.stream()
-                    .filter(card -> card.getListId().equals(listConfig.getId()))
-                    .sorted(Comparator.comparing(Card::getOrder))
-                    .collect(Collectors.toList());
-            
-            listDto.setCards(cardsInList);
-            return listDto;
-        }).collect(Collectors.toList());
-
-        // 4. Đóng gói trả về
-        BoardDetailsResponse response = new BoardDetailsResponse();
-        response.setId(board.getId());
-        response.setTitle(board.getTitle());
-        response.setWorkspaceId(board.getWorkspaceId());
-        response.setLists(listsWithCards);
-
-        return response;
+    public Board getBoardDetails(String boardId) {
+        return boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Board!"));
+    }
+    
+    // Hàm tạo Task mới
+    public Board.TaskConfig addTask(String boardId, String listId, String title) {
+        Board board = boardRepository.findById(boardId).orElseThrow(() -> new RuntimeException("Không tìm thấy Board!"));
+        
+        // Tạo Task mới
+        Board.TaskConfig newTask = new Board.TaskConfig();
+        newTask.setTitle(title);
+        
+        // Đẩy vào Map tasks và cập nhật taskIds của List tương ứng
+        board.getTasks().put(newTask.getId(), newTask);
+        board.getLists().get(listId).getTaskIds().add(newTask.getId());
+        
+        boardRepository.save(board);
+        return newTask;
     }
 
-    // DTO (Data Transfer Object) để định hình cục JSON trả về cho Frontend
-    @Data
-    public static class BoardDetailsResponse {
-        private String id;
-        private String title;
-        private String workspaceId;
-        private List<ListWithCards> lists;
+    // Hàm thêm Comment (BẠN ĐANG THIẾU HÀM NÀY)
+    public Board.Comment addComment(String boardId, String taskId, String userId, String userName, String content) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Board"));
 
-        @Data
-        public static class ListWithCards {
-            private String id;
-            private String title;
-            private Integer order;
-            private List<Card> cards; // Danh sách thẻ nằm gọn trong cột
+        // Tìm Task đang cần comment
+        Board.TaskConfig task = board.getTasks().get(taskId);
+        if (task == null) {
+            throw new RuntimeException("Không tìm thấy Task trong Board này");
         }
+
+        // Tạo Comment
+        Board.Comment newComment = new Board.Comment();
+        newComment.setUserId(userId);
+        newComment.setUserName(userName);
+        newComment.setContent(content);
+
+        // Nhúng Comment vào Task
+        task.getComments().add(newComment);
+        boardRepository.save(board); 
+        
+        return newComment;
+    }
+
+    public Board.TaskConfig updateTask(String boardId, String taskId, String title, String description, String coverImage) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Board"));
+        
+        Board.TaskConfig task = board.getTasks().get(taskId);
+        if (task == null) {
+            throw new RuntimeException("Không tìm thấy Task");
+        }
+
+
+        if (title != null) task.setTitle(title);
+        if (description != null) task.setDescription(description);
+        if (coverImage != null) task.setCoverImage(coverImage);
+
+        boardRepository.save(board);
+        return task;
+    }
+
+
+    public Board moveTask(String boardId, String sourceListId, String destinationListId, 
+                          java.util.List<String> sourceTaskIds, java.util.List<String> destinationTaskIds) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Board"));
+
+        // Cập nhật lại thứ tự Task cho cột bị lấy mất Task (Source)
+        Board.ListConfig sourceList = board.getLists().get(sourceListId);
+        if (sourceList != null) {
+            sourceList.setTaskIds(sourceTaskIds);
+        }
+
+
+        if (!sourceListId.equals(destinationListId)) {
+            Board.ListConfig destList = board.getLists().get(destinationListId);
+            if (destList != null) {
+                destList.setTaskIds(destinationTaskIds);
+            }
+        }
+
+        return boardRepository.save(board);
+    }
+    // ==========================================
+    // CÁC API XÓA (DELETE) - 10% CUỐI CÙNG
+    // ==========================================
+
+    // 1. Xóa Bình luận (Comment)
+    public void deleteComment(String boardId, String taskId, String commentId) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Board"));
+        
+        Board.TaskConfig task = board.getTasks().get(taskId);
+        if (task != null) {
+            // Duyệt qua mảng comments và xóa comment có ID trùng khớp
+            task.getComments().removeIf(comment -> comment.getId().equals(commentId));
+            boardRepository.save(board);
+        }
+    }
+
+    // 2. Xóa Thẻ công việc (Task)
+    public void deleteTask(String boardId, String listId, String taskId) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Board"));
+        
+        // Bước 1: Rút ID của Task này ra khỏi mảng taskIds của List
+        Board.ListConfig list = board.getLists().get(listId);
+        if (list != null) {
+            list.getTaskIds().remove(taskId);
+        }
+        
+        // Bước 2: Xóa sổ hoàn toàn dữ liệu của Task này khỏi Map tasks
+        board.getTasks().remove(taskId);
+        
+        boardRepository.save(board);
+    }
+
+    // 3. Xóa Cột (List) và dọn rác
+    public void deleteList(String boardId, String listId) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Board"));
+        
+        Board.ListConfig list = board.getLists().get(listId);
+        if (list != null) {
+            // Dọn rác: Xóa toàn bộ các Task đang nằm trong Cột này cho sạch Database
+            list.getTaskIds().forEach(taskId -> board.getTasks().remove(taskId));
+        }
+        
+        // Gỡ Cột này khỏi Map lists và mảng listOrder
+        board.getLists().remove(listId);
+        board.getListOrder().remove(listId);
+        
+        boardRepository.save(board);
     }
 }

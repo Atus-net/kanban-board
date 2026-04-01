@@ -3,46 +3,47 @@ package com.kanban.board.model;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import jakarta.persistence.Column;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Data
-@Document(collection = "boards")
+@Document(collection = "boards") // Đánh dấu lưu trữ tại MongoDB
 public class Board {
-    
     @Id
-    private String id; // MongoDB tự động sinh ID dạng String (ObjectId)
-
-    // Sợi dây liên kết với PostgreSQL: Lưu ID của Workspace
-    private String workspaceId; 
-    
+    private String id;
+    private String workspaceId; // Khóa ngoại nối sang ID của Workspace bên Postgres
     private String title;
-    private String visibility = "WORKSPACE"; // PUBLIC, WORKSPACE, PRIVATE
+    private String coverImage;
 
-    // ĐIỂM ĂN TIỀN CỦA MONGODB: Nhúng (Embed) luôn danh sách Cột vào trong Board
-    private List<ListConfig> lists = new ArrayList<>();
-    
-    @CreationTimestamp // Tự động điền khi insert
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
+    // Cấu trúc Map để lưu trữ linh hoạt, giúp React UI xử lý kéo thả cực nhanh
+    private Map<String, ListConfig> lists = new HashMap<>();
+    private Map<String, TaskConfig> tasks = new HashMap<>();
+    private List<String> listOrder = new ArrayList<>();
 
-    @UpdateTimestamp // Tự động cập nhật khi có bất kỳ thay đổi nào
-    private LocalDateTime updatedAt;
-
-    // Class cấu hình cho 1 Cột (Ví dụ: Cột To-do, In Progress...)
     @Data
     public static class ListConfig {
-        private String id = UUID.randomUUID().toString(); // Tự sinh ID cho Cột
+        private String id = UUID.randomUUID().toString();
         private String title;
-        private Integer order; // Dùng để sắp xếp vị trí cột khi kéo thả
+        private List<String> taskIds = new ArrayList<>();
     }
-    
+
+    @Data
+    public static class TaskConfig {
+        private String id = UUID.randomUUID().toString();
+        private String title;
+        private String description;
+        private String coverImage;
+        
+        // Mảng chứa các Comment linh hoạt cho từng Task (Yêu cầu của bạn)
+        private List<Comment> comments = new ArrayList<>(); 
+    }
+
+    @Data
+    public static class Comment {
+        private String id = UUID.randomUUID().toString();
+        private String userId;   // Lưu ID của User từ Postgres
+        private String userName; // Lưu kèm tên để hiển thị nhanh trên UI
+        private String content;
+        private String createdAt = LocalDateTime.now().toString();
+    }
 }

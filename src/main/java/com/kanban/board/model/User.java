@@ -2,11 +2,11 @@ package com.kanban.board.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -16,24 +16,32 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    private String username;
+
     @Column(nullable = false, unique = true)
     private String email;
 
     @Column(nullable = false)
-    private String passwordHash;
+    private String password;
 
+    // Gộp full_name thành name cho khớp UI
     @Column(nullable = false)
-    private String firstName; 
+    private String name;
 
-    @Column(nullable = false)
-    private String lastName;  
+    private String avatar;
+    
+    // Màu nền avatar mặc định
+    private String color;
 
-    private String avatarUrl;
+    private String role;
 
-    @CreationTimestamp // Tự động điền khi insert
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
+    @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp // Tự động cập nhật khi có bất kỳ thay đổi nào
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

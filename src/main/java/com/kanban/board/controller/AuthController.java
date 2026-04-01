@@ -1,6 +1,5 @@
 package com.kanban.board.controller;
 
-
 import com.kanban.board.model.User;
 import com.kanban.board.service.UserService;
 import lombok.Data;
@@ -10,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:3000")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -18,35 +18,35 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
+            // Đã đổi thành truyền 1 biến Name duy nhất
             User savedUser = userService.registerUser(
                     request.getEmail(), 
                     request.getPassword(), 
-                    request.getFirstName(), 
-                    request.getLastName()
+                    request.getName() 
             );
             return ResponseEntity.ok("User registration successful: " + savedUser.getEmail());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             String token = userService.login(request.getEmail(), request.getPassword());
-            return ResponseEntity.ok(new AuthResponse(token)); // Trả về dạng JSON có chứa token
+            return ResponseEntity.ok(new AuthResponse(token)); 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    // Tạo các class phụ (DTO) để map dữ liệu JSON
     @Data
     static class RegisterRequest {
         private String email;
         private String password;
-        private String firstName;
-        private String lastName;
+        private String name; // Gộp chung thành name
     }
+    
     @Data
     static class LoginRequest {
         private String email;
